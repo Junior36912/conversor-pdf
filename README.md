@@ -13,6 +13,8 @@ Web Workers, sem travar a interface.
 | Marca d'água | `/watermark-pdf` | Aplica um texto (centralizado ou em mosaico) nas páginas escolhidas |
 | PDF para Imagem | `/pdf-to-image` | Converte páginas em PNG ou JPG (72, 150 ou 300 DPI) |
 
+**Demo:** <https://conpdf.onrender.com/>
+
 Documentação do projeto:
 
 - [`INFO.md`](INFO.md): tudo o que o projeto faz, restrições e ideias de melhoria.

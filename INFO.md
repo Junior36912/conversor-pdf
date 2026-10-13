@@ -158,11 +158,12 @@ as convenções de código, veja [CLAUDE.md](CLAUDE.md).
 
 - **Desenvolvimento:** Node 20.9+ (desenvolvido no 20.20; build verificado no 22 e no 24), npm.
 - **Build:** `npm run build` gera `out/` (site estático). Não há servidor em produção.
-- **Hospedagem:** qualquer host estático. Para o **Render**, há `render.yaml` (Static Site) e
-  `.node-version` (22).
-  - Verificado: build nos Node 20/22/24; as 7 suítes de teste contra `out/` em servidor estático estrito;
-    worker do `pdf.js` servido com MIME de JavaScript.
-  - **Não verificado:** deploy real no Render (URLs sem barra final, `404.html`, cota de banda).
+- **Hospedagem:** qualquer host estático. No ar em **Render (Static Site)**:
+  <https://conpdf.onrender.com/>. O repositório tem `render.yaml` e `.node-version` (22).
+  - Verificado no site real: as 7 suítes de navegador (175 verificações) passam; `/rota` sem barra final
+    funciona; o worker do `pdf.js` é servido como JavaScript; a página 404 do app é exibida.
+  - Verificado antes: build nos Node 20/22/24 e as suítes contra `out/` em servidor estático estrito.
+  - **Não verificado:** cota de banda do plano gratuito e comportamento sob carga.
 - `output: "export"` impede recursos de servidor (rotas dinâmicas, cookies, Server Actions, rewrites,
   headers do Next); `cacheComponents` precisou ficar desligado.
 

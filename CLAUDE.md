@@ -296,11 +296,14 @@ Se for recriar: prefira **Playwright** dentro do repo. Armadilhas já enfrentada
 Alvo recomendado: **Static Site** (grátis, sem "adormecer", sem servidor Node). `render.yaml`:
 `runtime: static`, `buildCommand: npm install && npm run build`, `staticPublishPath: ./out`; Node 22 via `.node-version`.
 
-- **Verificado localmente:** build estático nos Node 20/22/24 (24.21.0 é o padrão atual do Render);
-  todas as 7 suítes contra o `out/` num servidor estático estrito; worker do pdf.js servido como `.js`
-  (`text/javascript`); todas as rotas viram `rota/index.html`.
-- **NÃO verificado (não foi feito deploy):** o comportamento real do Render com URLs sem barra final,
-  o `404.html`, cabeçalhos e a cota de banda do plano gratuito. Links internos já usam barra final.
+- **No ar:** <https://conpdf.onrender.com/> (Static Site `conpdf`, servido pelo Cloudflare do Render).
+  Todas as 7 suítes de navegador (175 verificações) passaram contra a URL real, sem requisição externa,
+  sem POST e sem erro de console.
+- **Confirmado no Render:** `/rota` sem barra final abre direto (200, sem redirecionamento); o worker do
+  pdf.js é servido como `application/javascript`; rota inexistente devolve 404 com a página 404 do app.
+- **Verificado antes do deploy:** build estático nos Node 20/22/24 (24.21.0 é o padrão do Render) e as
+  suítes contra `out/` num servidor estático estrito.
+- **Não verificado:** a cota de banda do plano gratuito e o comportamento sob carga.
 - Cabeçalhos de segurança (ex.: CSP com `connect-src 'self'`) não estão configurados; seriam uma
   camada extra para provar a regra de ouro.
 
@@ -309,5 +312,6 @@ Alvo recomendado: **Static Site** (grátis, sem "adormecer", sem servidor Node).
 - 6 ferramentas prontas; Home e Navbar listam todas.
 - Repositório público no GitHub: <https://github.com/Junior36912/conversor-pdf> (`origin`, branch `main`
   acompanhando `origin/main`). O `gh` está autenticado como `Junior36912`.
-- Deploy no Render **ainda não foi feito** (só preparado; ver §11).
+- Deploy no Render feito e verificado: <https://conpdf.onrender.com/> (ver §11). Cada `git push` na `main`
+  dispara um novo deploy (padrão do Render para Static Site).
 - Pendências e ideias: ver "Possíveis melhorias" em [INFO.md](INFO.md).
