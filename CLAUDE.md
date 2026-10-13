@@ -294,7 +294,7 @@ Se for recriar: prefira **Playwright** dentro do repo. Armadilhas já enfrentada
 ## 11. Implantação (Render)
 
 Alvo recomendado: **Static Site** (grátis, sem "adormecer", sem servidor Node). `render.yaml`:
-`runtime: static`, `buildCommand: npm run build`, `staticPublishPath: ./out`; Node 22 via `.node-version`.
+`runtime: static`, `buildCommand: npm install && npm run build`, `staticPublishPath: ./out`; Node 22 via `.node-version`.
 
 - **Verificado localmente:** build estático nos Node 20/22/24 (24.21.0 é o padrão atual do Render);
   todas as 7 suítes contra o `out/` num servidor estático estrito; worker do pdf.js servido como `.js`

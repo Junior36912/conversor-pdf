@@ -35,7 +35,7 @@ npm start        # serve out/ localmente (usa `npx serve`)
 O site é 100% estático (`output: "export"`): basta publicar a pasta `out/`.
 
 **Render (Static Site):** use o `render.yaml` deste repositório (New → Blueprint), ou crie um
-Static Site manualmente com *Build Command* `npm run build` e *Publish Directory* `out`.
+Static Site manualmente com *Build Command* `npm install && npm run build` e *Publish Directory* `out`.
 A versão do Node é fixada em `.node-version`.
 
 Qualquer outro host estático (Netlify, Cloudflare Pages, GitHub Pages, Nginx...) também serve.
