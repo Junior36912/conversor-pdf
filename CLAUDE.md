@@ -413,13 +413,19 @@ Alvo recomendado: **Static Site** (grátis, sem "adormecer", sem servidor Node).
 `runtime: static`, `buildCommand: npm install && npm run build`, `staticPublishPath: ./out`; Node 22 via `.node-version`.
 
 - **No ar:** <https://conpdf.onrender.com/> (Static Site `conpdf`, servido pelo Cloudflare do Render).
-  Todas as 7 suítes de navegador (175 verificações) passaram contra a URL real, sem requisição externa,
-  sem POST e sem erro de console.
+  As **15 suítes de navegador (388 verificações) passaram contra a URL real** (commit 42a40a9, worker enxuto),
+  sem requisição externa, sem POST e sem erro de console. Latência medida ao vivo: Juntar com um PDF
+  corrompido mostra o alerta ~4,6 s após o clique (eram ~15 s com o worker de ~3 MB; localmente ~1,5 s);
+  o Juntar baixa ~1 MB (~300 KB com brotli). `compress` e `extra`, que estouravam o tempo, passam.
 - **Confirmado no Render:** `/rota` sem barra final abre direto (200, sem redirecionamento); o worker do
   pdf.js é servido como `application/javascript`; rota inexistente devolve 404 com a página 404 do app.
 - **Verificado antes do deploy:** build estático nos Node 20/22/24 (24.21.0 é o padrão do Render) e as
   suítes contra `out/` num servidor estático estrito.
 - **Não verificado:** a cota de banda do plano gratuito e o comportamento sob carga.
+- **Cache:** o Render serve `/_next/static/*` com `max-age=0`, então o navegador revalida cada chunk a cada
+  worker novo (~0,25 s por arquivo). `render.yaml` declara `Cache-Control: immutable` para `/_next/static/*` e
+  `/pdf.worker.*`, mas o serviço `conpdf` foi criado pelo formulário (não pelo Blueprint `pdflocal`): para valer
+  ao vivo é preciso criar esses cabeçalhos no painel (Settings > Headers). Ainda **não aplicado nem testado**.
 - Cabeçalhos de segurança (ex.: CSP com `connect-src 'self'`) não estão configurados; seriam uma
   camada extra para provar a regra de ouro.
 

@@ -274,8 +274,11 @@ AGPL-3.0, que obrigaria o projeto inteiro a adotar essa licença).
 - **Build:** `npm run build` gera `out/` (site estático). Não há servidor em produção.
 - **Hospedagem:** qualquer host estático. No ar em **Render (Static Site)**:
   <https://conpdf.onrender.com/>. O repositório tem `render.yaml` e `.node-version` (22).
-  - Verificado no site real: as 7 suítes de navegador (175 verificações) passam; `/rota` sem barra final
-    funciona; o worker do `pdf.js` é servido como JavaScript; a página 404 do app é exibida.
+  - Verificado no site real: as 15 suítes de navegador (388 verificações, as 14 ferramentas) passam; `/rota`
+    sem barra final funciona; o worker do `pdf.js` é servido como JavaScript; a página 404 do app é exibida.
+  - Desempenho real: cada tarefa abre um worker novo; um Juntar baixa ~1 MB (~300 KB comprimidos) e o alerta de
+    PDF corrompido aparece ~4,6 s após o clique (localmente ~1,5 s). O motor do Word (~2,3 MB de wasm) e o
+    `exceljs` só são baixados nas ferramentas que os usam.
   - Verificado antes: build nos Node 20/22/24 e as suítes contra `out/` em servidor estático estrito.
   - **Não verificado:** cota de banda do plano gratuito e comportamento sob carga.
 - `output: "export"` impede recursos de servidor (rotas dinâmicas, cookies, Server Actions, rewrites,
