@@ -4,6 +4,10 @@ import type {
   PdfWorkerResponse,
 } from "./pdf-worker";
 import type { CompressionLevel } from "@/app/lib/pdf/compress";
+import type { RawPage } from "@/app/lib/pdf/analyze-layout";
+import type { DocxOptions } from "@/app/lib/office/docx-writer";
+import type { PageImage } from "@/app/lib/office/pptx-writer";
+import type { XlsxOptions } from "@/app/lib/office/xlsx-writer";
 import type { PageEdit } from "@/app/lib/pdf/core";
 import type { ImageInput, ImagesToPdfOptions } from "@/app/lib/pdf/images";
 import type { PageRange } from "@/app/lib/pdf/ranges";
@@ -172,6 +176,49 @@ export async function docxToPdfInWorker(
   options?: WorkerOptions,
 ): Promise<Uint8Array<ArrayBuffer>> {
   const { bytes } = await runInWorker({ type: "docx", buffer }, [buffer], options);
+  return bytes;
+}
+
+/** Monta um .docx editável a partir do texto extraído das páginas de um PDF. */
+export async function pdfToDocxInWorker(
+  pages: RawPage[],
+  docxOptions: DocxOptions & { removeRepeated: boolean },
+  options?: WorkerOptions,
+): Promise<Uint8Array<ArrayBuffer>> {
+  const { bytes } = await runInWorker({ type: "pdf-to-docx", pages, options: docxOptions }, [], options);
+  return bytes;
+}
+
+/** Monta uma planilha .xlsx com as tabelas (e o texto) extraídos de um PDF. */
+export async function pdfToXlsxInWorker(
+  pages: RawPage[],
+  xlsxOptions: XlsxOptions & { removeRepeated: boolean },
+  options?: WorkerOptions,
+): Promise<Uint8Array<ArrayBuffer>> {
+  const { bytes } = await runInWorker({ type: "pdf-to-xlsx", pages, options: xlsxOptions }, [], options);
+  return bytes;
+}
+
+/** Monta um .pptx com caixas de texto e tabelas editáveis nas posições do PDF. */
+export async function pdfToPptxTextInWorker(
+  pages: RawPage[],
+  removeRepeated: boolean,
+  options?: WorkerOptions,
+): Promise<Uint8Array<ArrayBuffer>> {
+  const { bytes } = await runInWorker({ type: "pdf-to-pptx-text", pages, removeRepeated }, [], options);
+  return bytes;
+}
+
+/** Monta um .pptx em que cada slide é a imagem de uma página do PDF. */
+export async function pdfToPptxImagesInWorker(
+  pages: PageImage[],
+  options?: WorkerOptions,
+): Promise<Uint8Array<ArrayBuffer>> {
+  const { bytes } = await runInWorker(
+    { type: "pdf-to-pptx-images", pages },
+    pages.map(({ jpeg }) => jpeg),
+    options,
+  );
   return bytes;
 }
 

@@ -10,8 +10,6 @@ import {
   splitPdfInWorker,
 } from "@/app/lib/workers/pdf-worker-client";
 
-const MIME_TYPES = { pdf: "application/pdf", zip: "application/zip" } as const;
-
 export function usePdfSplit() {
   const { run, ...task } = usePdfTask();
 
@@ -30,7 +28,7 @@ export function usePdfSplit() {
             format === "zip"
               ? `${baseName}_dividido.zip`
               : `${baseName}_pag-${formatRange(ranges[0])}.pdf`;
-          downloadBlob(bytes, filename, MIME_TYPES[format]);
+          downloadBlob(bytes, filename, format === "zip" ? "application/zip" : "application/pdf");
           setOutputName(filename);
         },
         describePdfError(file, "Ocorreu um erro ao dividir o PDF. Tente novamente."),

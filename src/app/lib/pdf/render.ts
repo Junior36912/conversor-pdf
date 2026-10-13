@@ -4,7 +4,7 @@ type PdfJs = typeof import("pdfjs-dist");
 
 let pdfjsPromise: Promise<PdfJs> | null = null;
 
-function loadPdfJs(): Promise<PdfJs> {
+export function loadPdfJs(): Promise<PdfJs> {
   pdfjsPromise ??= import("pdfjs-dist").then((pdfjs) => {
     // Copiado para `public/` por scripts/copy-pdf-worker.mjs (servido como .js; ver o script).
     pdfjs.GlobalWorkerOptions.workerSrc = `/pdf.worker.${pdfjs.version}.min.js`;
@@ -215,5 +215,22 @@ export async function renderImageThumbnail(file: File, targetWidth = 160): Promi
     return canvas.toDataURL("image/jpeg", 0.7);
   } finally {
     bitmap.close();
+  }
+}
+
+/** Tamanho (largura e altura, em pontos) de cada página do PDF. */
+export async function getPdfPageSizes(file: File): Promise<{ width: number; height: number }[]> {
+  const pdfjs = await loadPdfJs();
+  const data = new Uint8Array(await file.arrayBuffer());
+  const pdf = await pdfjs.getDocument({ data }).promise;
+  try {
+    const sizes: { width: number; height: number }[] = [];
+    for (let number = 1; number <= pdf.numPages; number++) {
+      const { width, height } = (await pdf.getPage(number)).getViewport({ scale: 1 });
+      sizes.push({ width, height });
+    }
+    return sizes;
+  } finally {
+    await pdf.destroy();
   }
 }

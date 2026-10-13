@@ -7,10 +7,18 @@ import {
   splitPdfDocument,
   type PageEdit,
 } from "@/app/lib/pdf/core";
+import { analyzeDocument, type RawPage } from "@/app/lib/pdf/analyze-layout";
 import { docxToPdf } from "@/app/lib/pdf/docx";
 import { imagesToPdf, type ImageInput, type ImagesToPdfOptions } from "@/app/lib/pdf/images";
 import { formatRange, type PageRange } from "@/app/lib/pdf/ranges";
 import type { WatermarkOptions } from "@/app/lib/pdf/watermark";
+import { writeDocx, type DocxOptions } from "@/app/lib/office/docx-writer";
+import {
+  writePptxFromImages,
+  writePptxFromText,
+  type PageImage,
+} from "@/app/lib/office/pptx-writer";
+import { writeXlsx, type XlsxOptions } from "@/app/lib/office/xlsx-writer";
 import { createZip } from "@/app/lib/zip";
 
 export type PdfWorkerRequest =
@@ -21,9 +29,13 @@ export type PdfWorkerRequest =
   | { type: "compress"; buffer: ArrayBuffer; level: CompressionLevel }
   | { type: "watermark"; buffer: ArrayBuffer; options: WatermarkOptions }
   | { type: "images"; images: ImageInput[]; options: ImagesToPdfOptions }
-  | { type: "docx"; buffer: ArrayBuffer };
+  | { type: "docx"; buffer: ArrayBuffer }
+  | { type: "pdf-to-docx"; pages: RawPage[]; options: DocxOptions & { removeRepeated: boolean } }
+  | { type: "pdf-to-xlsx"; pages: RawPage[]; options: XlsxOptions & { removeRepeated: boolean } }
+  | { type: "pdf-to-pptx-text"; pages: RawPage[]; removeRepeated: boolean }
+  | { type: "pdf-to-pptx-images"; pages: PageImage[] };
 
-export type PdfOutputFormat = "pdf" | "zip";
+export type PdfOutputFormat = "pdf" | "zip" | "docx" | "xlsx" | "pptx";
 
 export type PdfWorkerResponse =
   | { type: "progress"; completed: number; total: number }
@@ -112,6 +124,27 @@ ctx.addEventListener("message", async ({ data }) => {
         break;
       case "docx":
         output = { result: await docxToPdf(data.buffer), format: "pdf" };
+        break;
+      case "pdf-to-docx": {
+        const { pages } = analyzeDocument(data.pages, { removeRepeated: data.options.removeRepeated });
+        report(1, 2);
+        output = { result: await writeDocx(pages, data.options), format: "docx" };
+        break;
+      }
+      case "pdf-to-xlsx": {
+        const { pages } = analyzeDocument(data.pages, { removeRepeated: data.options.removeRepeated });
+        report(1, 2);
+        output = { result: await writeXlsx(pages, data.options), format: "xlsx" };
+        break;
+      }
+      case "pdf-to-pptx-text": {
+        const { pages } = analyzeDocument(data.pages, { removeRepeated: data.removeRepeated });
+        report(1, 2);
+        output = { result: await writePptxFromText(pages), format: "pptx" };
+        break;
+      }
+      case "pdf-to-pptx-images":
+        output = { result: await writePptxFromImages(data.pages), format: "pptx" };
         break;
       default:
         return;
