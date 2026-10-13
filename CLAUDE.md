@@ -307,7 +307,7 @@ Alvo recomendado: **Static Site** (grátis, sem "adormecer", sem servidor Node).
 ## 12. Estado atual
 
 - 6 ferramentas prontas; Home e Navbar listam todas.
-- Repositório git local na branch `main` (commit inicial do `create-next-app` + o trabalho deste projeto).
-  **Não há remoto configurado** até o usuário escolher onde publicar.
-- `gh` está autenticado como `Junior36912`.
+- Repositório público no GitHub: <https://github.com/Junior36912/conversor-pdf> (`origin`, branch `main`
+  acompanhando `origin/main`). O `gh` está autenticado como `Junior36912`.
+- Deploy no Render **ainda não foi feito** (só preparado; ver §11).
 - Pendências e ideias: ver "Possíveis melhorias" em [INFO.md](INFO.md).
