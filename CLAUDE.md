@@ -65,7 +65,13 @@ Pediu também código "o mais modular possível".
 3. **Fase 3:** `/pdf-to-image`.
 4. **Fase 4:** `/organize-pdf`, `/compress-pdf`, `/watermark-pdf`; Navbar com links entre
    ferramentas; refatorações compartilhadas.
-5. **Implantação:** exportação estática, ajustes para o Render, README, `render.yaml`.
+5. **Implantação:** exportação estática, ajustes para o Render, README, `render.yaml`; site no ar em
+   <https://conpdf.onrender.com/>.
+6. **Fase 5 (conversões do menu do iLovePDF, pedido por imagem):** `/image-to-pdf`, `/word-to-pdf`,
+   `/excel-to-pdf`, `/powerpoint-to-pdf`, `/html-to-pdf`, `/pdf-to-word`, `/pdf-to-excel`,
+   `/pdf-to-powerpoint` (`/pdf-to-image` já existia). **Decisões do usuário:** motor **leve e aproximado**
+   para Office → PDF (sem LibreOffice em WebAssembly) e **sem PDF → PDF/A** (só o Ghostscript faz, e ele é
+   AGPL-3.0). Menu "Ferramentas" na Navbar e Home agrupada em 3 seções.
 
 O usuário costuma responder com instruções curtas ("faça", "faça todas") para autorizar as
 sugestões que eu listei; trate isso como aval para executar o conjunto proposto. Ele escreve em
@@ -89,38 +95,47 @@ o build foi verificado também no 22.23.3 e no 24.21.0. `.node-version` fixa o 2
 
 ```
 src/app/
-  layout.tsx                  # raiz: fontes Geist, metadata, Navbar + <main> + Footer; lang="pt-BR"
-  page.tsx                    # Home: grid de ToolCard a partir de lib/tools.ts
-  globals.css                 # Tailwind 4 + tokens do shadcn (tema só claro; ver §8)
-  (tools)/<rota>/{layout,page}.tsx   # uma pasta por ferramenta (layout.tsx só define metadata + container)
+  layout.tsx · page.tsx (Home: 3 grupos) · globals.css · types-shims.d.ts (tipos do pacote "ssf")
+  (tools)/<rota>/{layout,page}.tsx   # 14 ferramentas (layout.tsx só define metadata + container)
   components/
     ui/        button, card, input, progress          (shadcn; alias @/app/components/ui)
-    layout/    Navbar, Footer
-    shared/    PdfDropzone, PdfThumbnail, ToolCard, SelectedPdfCard, SegmentedControl,
-               PageSelector, SortablePdfList (lista do merge), SortablePageGrid (grade do organizar)
+    layout/    Navbar, NavMenu (menu "Ferramentas": client, fecha com Esc/clique fora/ao navegar), Footer
+    shared/    FileDropzone (genérico) · PdfDropzone (PDF + store) · FileThumbnail · ToolCard ·
+               SelectedPdfCard (PDF) · SelectedFileCard (Word/Excel/HTML...) · SegmentedControl ·
+               PageSelector · SortableFileList (Juntar e Imagem→PDF) · SortablePageGrid (Organizar)
   hooks/
     usePdfTask         # ciclo comum: status, progresso, erro, outputName, abort ao desmontar
-    usePdfMerge / usePdfSplit / usePdfOrganize / usePdfCompress / usePdfWatermark / usePdfToImage
-    usePdfPageCount    # nº de páginas (pdf.js); usePdfPages # abre o PDF p/ miniaturas de qualquer página
+    um hook por ferramenta: usePdfMerge/Split/Organize/Compress/Watermark/ToImage, useImagesToPdf,
+    useWordToPdf, useExcelToPdf, usePowerPointToPdf, useHtmlToPdf, usePdfToWord/ToExcel/ToPowerPoint
+    usePdfPageCount (nº de páginas) · usePdfPages (abre o PDF p/ miniaturas de qualquer página)
   lib/
-    constants.ts       # SITE_NAME, SITE_TAGLINE
-    tools.ts           # lista central de ferramentas (Home + Navbar)
-    utils.ts           # cn (re-export do pacote "cn"), formatBytes, fileBaseName
-    download.ts        # downloadBlob (createObjectURL + <a download>)
-    zip.ts             # createZip (fflate, sem recompressão)
+    constants.ts · tools.ts (TOOL_GROUPS: fonte da Home e do menu) · utils.ts · download.ts · zip.ts
     pdf/
-      core.ts          # pdf-lib: merge, split, organize, watermark (+ PdfLoadError)   [só no worker]
-      compress.ts      # pdf-lib + OffscreenCanvas: compressão                          [só no worker]
-      watermark.ts     # tipos + geometria pura (computePlacements) + hexToRgb
-      ranges.ts        # parsePageRanges, chunkRanges, expandRanges, selectPages
-      text.ts          # isWinAnsiText (texto que a Helvetica do PDF consegue desenhar)
-      render.ts        # pdf.js: renderFirstPage, getPdfPageCount, renderPagesToImages, openPdfPages
+      core.ts          # pdf-lib: merge, split, organize, watermark (+ PdfLoadError)          [worker]
+      compress.ts      # compressão (OffscreenCanvas)                                         [worker]
+      images.ts        # Imagem → PDF (EXIF, JPEG sem recompressão, WebP/GIF/BMP via canvas)  [worker]
+      docx.ts, docx-prepare.ts   # Word → PDF (docx-to-pdf-wasm + correções do .docx)       [worker]
+      fonts.ts         # Arimo/Tinos/Cousine embutidas sob demanda (fontkit)                 [worker]
+      extract.ts       # pdf.js -> RawPage[] (texto, posição, negrito/itálico)                [main thread]
+      analyze-layout.ts# RawPage[] -> linhas/parágrafos/títulos/listas/tabelas (função pura)  [worker]
+      watermark.ts · ranges.ts · text.ts
+      render.ts        # pdf.js: miniaturas, páginas -> imagem, openPdfPages, getPdfPageSizes  [main thread]
+    office/
+      xml.ts           # parser XML mínimo (o worker não tem DOMParser)
+      numbers.ts       # "1.234,56" / "12%" -> número (pt-BR ou EUA)
+      docx-writer.ts · xlsx-writer.ts · pptx-writer.ts      # PDF → Word/Excel/PowerPoint
+      xlsx-render.ts   # Excel → PDF (exceljs + ssf + renderizador próprio)
+      pptx/{theme,model,draw,render}.ts   # PowerPoint → PDF (renderizador próprio)
+    html/
+      document.ts      # sanitiza o HTML, injeta CSP e @page, conta recursos bloqueados
+      paginate.ts      # onde cortar as páginas (entre linhas; respeita break-before)
+      raster.ts        # captura cada página como JPEG (SVG foreignObject)                    [main thread]
     workers/
       pdf-worker.ts          # o Web Worker (protocolo abaixo)
-      pdf-worker-client.ts   # runInWorker + mergePdfsInWorker, splitPdfInWorker, zipInWorker, ...
+      pdf-worker-client.ts   # runInWorker + uma função por pedido (mergePdfsInWorker, ...)
   store/useFileStore.ts      # Zustand: só a lista do Juntar PDF
 scripts/copy-pdf-worker.mjs  # copia o worker do pdf.js para public/ como .js (ver §6)
-public/pdf.worker.<versão>.min.js   # GERADO (ignorado pelo git)
+public/pdf.worker.<versão>.min.js   # GERADO (ignorado pelo git e pelo ESLint)
 next.config.ts · components.json · render.yaml · .node-version · AGENTS.md
 ```
 
@@ -139,8 +154,13 @@ next.config.ts · components.json · render.yaml · .node-version · AGENTS.md
 | `organize` | `buffer`, `pages: {page, rotation}[]` | PDF |
 | `compress` | `buffer`, `level: light/recommended/strong` | PDF |
 | `watermark` | `buffer`, `options: WatermarkOptions` | PDF |
+| `images` | `images: {name, buffer}[]`, `options` (tamanho, orientação, margem, `dpi`) | PDF |
+| `docx` / `xlsx` / `pptx` | `buffer` (xlsx leva também `options`) | PDF |
+| `pdf-to-docx` / `pdf-to-xlsx` | `pages: RawPage[]`, `options` | .docx / .xlsx |
+| `pdf-to-pptx-text` | `pages: RawPage[]`, `removeRepeated` | .pptx editável |
+| `pdf-to-pptx-images` | `pages: {width, height, jpeg}[]` | .pptx (uma imagem por slide) |
 
-- `done` traz `{ result: Uint8Array<ArrayBuffer>, format: "pdf" | "zip" }`; o buffer é
+- `done` traz `{ result: Uint8Array<ArrayBuffer>, format: "pdf" | "zip" | "docx" | "xlsx" | "pptx" }`; o buffer é
   **transferido** (zero-copy) nos dois sentidos. Depois de enviar, o `ArrayBuffer` de entrada fica
   vazio na main thread.
 - `error` traz `message` e, para PDF ilegível, `failedIndex` (índice do arquivo). O worker usa
@@ -152,6 +172,41 @@ next.config.ts · components.json · render.yaml · .node-version · AGENTS.md
   `pdf-worker.*.ts` cru em `static/media/` é só um asset residual do `new URL()` e ninguém o carrega.
 - Dentro do worker, `self` é tipado com um contrato mínimo (não use `/// <reference lib="webworker" />`;
   conflita com o lib `dom`).
+
+### PDF → Word / Excel / PowerPoint
+
+1. **Main thread** (`extract.ts`): `pdf.js` lê o texto de cada página (`getTextContent`) e as fontes
+   (`page.commonObjs.get(id)` depois de `getOperatorList()`: nome real, `bold`, `italic`). Gera `RawPage[]`
+   em pontos, origem no canto superior esquerdo, já com a rotação da página. Texto vertical/girado é ignorado.
+2. **Worker** (`analyze-layout.ts`, puro): itens → linhas (mesma linha de base) → segmentos (colunas, por
+   vãos horizontais) → **tabelas** (perfil de projeção; colunas vizinhas que nunca coexistem numa linha são
+   fundidas, o que resolve cabeçalho à esquerda sobre números à direita) → parágrafos (espaçamento,
+   margem, tamanho da fonte; linha curta fecha o parágrafo) → títulos (tamanho vs. corpo mais comum) e
+   listas (marcadores `•`/`-`; numeração "1." só em texto comum, não em título). Remove cabeçalho/rodapé que
+   se repete em ≥50% das páginas. Limites: colunas de jornal intercalam; célula de várias linhas vira várias
+   linhas; **imagens não são extraídas**; PDF sem texto (digitalizado) recebe aviso de OCR.
+3. **Writers** (`office/*-writer.ts`): `docx` (estilos Heading 1-3, listas reais, tabelas com borda),
+   `exceljs` (células numéricas pelo `numbers.ts`; formato pt-BR ou EUA) e `pptxgenjs` (caixas de texto e
+   tabelas nas posições do PDF, ou, no modo "fiel", a página como imagem JPEG 2x por slide).
+
+### Office / HTML → PDF
+
+- **Word:** `docx-to-pdf-wasm` (Rust → WASM, MIT, ~2,4 MB, texto vetorial). O `.wasm` é buscado com `fetch` +
+  `WebAssembly.compile` (não depende do MIME `application/wasm`); instância nova por conversão.
+  `prepareDocx` reescreve o XML antes: marcadores do Word (caractere privado da fonte Symbol) viram "•" e as
+  bordas do *estilo* da tabela (ex.: "Table Grid") são copiadas para a própria tabela.
+- **Excel:** `exceljs` lê estilos; `ssf` aplica o formato de número/data de cada célula; `xlsx-render.ts`
+  desenha (preenchimento, bordas, negrito, cores de tema, mesclagens, quebra de texto, vazamento de texto
+  para células vazias, "###", escala para a largura, A4/Carta).
+- **PowerPoint:** `pptx/model.ts` lê o pacote e **achata a herança** (padrão da apresentação → mestre →
+  layout → slide → parágrafo → trecho; posição do placeholder herdada), `pptx/draw.ts` desenha com `pdf-lib`.
+- **Fontes:** `fonts.ts` embute Arimo (≈Arial), Tinos (≈Times) e Cousine (≈Courier), só as famílias usadas.
+  Texto fora do alfabeto latino vira "?". Calibri e similares usam fator 0,92 (a fonte substituta é mais larga).
+- **HTML:** roda na main thread (precisa de DOM). O HTML vai para uma `<iframe sandbox="allow-same-origin
+  allow-modals">` (sem `allow-scripts`) com `Content-Security-Policy` em `<meta>` (`default-src 'none'`; só
+  `data:`/`blob:` para imagem/fonte): scripts não rodam e **nada é buscado na rede**. Cada página é capturada
+  como SVG `foreignObject` → canvas → JPEG (2x) e montada com o pedido `images` (`dpi: 192`).
+  O botão "Imprimir / salvar como PDF" chama `iframe.contentWindow.print()` (texto vetorial, via diálogo).
 
 ### Ciclo de uma ferramenta
 
@@ -190,7 +245,7 @@ passa pelo worker.
 3. Função `xxxInWorker` em `pdf-worker-client.ts` (usa `runInWorker`).
 4. Hook fino `usePdfXxx` sobre `usePdfTask` (use `describePdfError`, `downloadBlob`, `fileBaseName`).
 5. Página em `(tools)/<rota>/page.tsx` + `layout.tsx` com `metadata` (use `LayoutProps<"/rota">`).
-6. Entrada em `lib/tools.ts` (alimenta Home e Navbar). Rode `npx next typegen` antes de `tsc`.
+6. Entrada no grupo certo de `TOOL_GROUPS` em `lib/tools.ts` (alimenta a Home e o menu da Navbar). Rode `npx next typegen` antes de `tsc`.
 7. Reutilize: `PdfDropzone`, `SelectedPdfCard`, `SegmentedControl`, `PageSelector` + `selectPages`,
    `usePdfPageCount`, `parsePageRanges`. Edição de opções deve chamar `reset()` se `status` for
    `done`/`error` (padrão `edit(setter)` das páginas existentes).
@@ -216,6 +271,16 @@ passa pelo worker.
   `import { cn } from "cn"` (pacote oficial `shadcn-ui/cn`) e `lib/utils.ts` só o reexporta. Para
   adicionar componentes: `npx shadcn@latest add <nome>`; ele cria em `src/app/components/ui/`.
   O init deixou `--font-sans: var(--font-sans)` circular; foi corrigido para `var(--font-geist-sans)`.
+- **Motor de Office → PDF "leve e aproximado"** (escolha do usuário): LibreOffice em WebAssembly daria mais
+  fidelidade, mas custa centenas de MB, vem de CDN externo e exige cabeçalhos COOP/COEP. Fica como melhoria.
+- **PowerPoint: renderizador próprio** em vez do `pptx-preview`: foi testado e rejeitado (sem marcadores de
+  lista, sem o estilo da tabela, fonte trocada, depende de `echarts` e o resultado seria imagem).
+- **PDF → PDF/A não existe** (decisão do usuário): conversão real só com Ghostscript (AGPL-3.0), o que obrigaria
+  o projeto a adotar AGPL; `pdf-lib` sozinho não garante conformidade (fontes padrão não são embutidas).
+- **Captura de HTML usa data URL**: um SVG com `foreignObject` carregado de `blob:` "contamina" o canvas e o
+  navegador recusa `toBlob`/`toDataURL`.
+- **Dependências novas:** `docx-to-pdf-wasm`, `docx`, `exceljs`, `pptxgenjs`, `ssf`, `@pdf-lib/fontkit`,
+  `@fontsource/{arimo,tinos,cousine}`; todas MIT/Apache/OFL (nenhuma AGPL/GPL).
 - **Sem `next/image`**: miniaturas são data URLs locais (`<img>` com `eslint-disable` comentado).
 - **Rodapé usa texto fixo**, sem `new Date()` (era proibido em Server Component com `cacheComponents`).
 
@@ -241,6 +306,21 @@ passa pelo worker.
   tamanho 8–300, opacidade 5–100% (um único ExtGState compartilhado, pois `drawText({opacity})` cria
   um por chamada), rotação 45/0/90 como o usuário vê a página (soma `page.getRotation()`), mosaico
   limitado a 5000 posições por página. Texto fora de WinAnsi é rejeitado na UI.
+- **Imagem → PDF** (`lib/pdf/images.ts`): JPEG sem EXIF vai **byte a byte** para o PDF (sem recompressão);
+  JPEG com orientação EXIF ≠ 1, WebP, GIF, BMP e AVIF passam por `createImageBitmap` (que aplica o EXIF) e
+  são recodificados; PNG usa `embedPng` (alfa vira SMask). "Do tamanho da imagem" = px × 72/dpi (+ margem).
+  Saída `imagens.pdf` (ou `<nome>.pdf` com uma só imagem).
+- **Word → PDF:** só `.docx`; `.doc` antigo é recusado com orientação. Notas de rodapé não são desenhadas.
+- **Excel → PDF:** `.xlsx`/`.xlsm`; planilhas ocultas e vazias são ignoradas; >10.000 linhas por planilha dá
+  erro (`WORKBOOK_TOO_LARGE`); gráficos, imagens e formatação condicional não são desenhados; sem ajuste à
+  largura o Excel divide em faixas de colunas ("desce e depois avança").
+- **PowerPoint → PDF:** slides ocultos são ignorados; degradês viram a cor da 1ª parada; gráficos/SmartArt
+  aparecem como caixa cinza com o rótulo; formas desconhecidas caem para retângulo; EMF/WMF/SVG não aparecem.
+  Tabelas usam o estilo embutido "Medium Style 2 - Accent N" (não fica no arquivo).
+- **HTML → PDF:** página = 794×1123 px (A4) ou 816×1056 (Carta) menos a margem; corta entre linhas de texto,
+  imagens e linhas de tabela; `canvas`/vídeo não são capturados; só fontes do sistema (web fonts bloqueadas).
+- **PDF → Word/Excel/PowerPoint:** ver o pipeline acima. Excel: "1.234,56" só vira número com o formato certo
+  (`numbers.ts` não converte CEP, códigos com zero à esquerda, datas).
 
 ## 8. Convenções
 
@@ -260,13 +340,19 @@ passa pelo worker.
 
 Não há suíte de testes dentro do repositório. A verificação foi feita com **testes de navegador
 descartáveis** (puppeteer-core + `/usr/bin/google-chrome`, Chrome 152 headless no Linux) que ficaram
-na pasta temporária da sessão, **fora do repo**. Cobriram: 7 suítes, 175 verificações, em `next dev`,
+na pasta temporária da sessão, **fora do repo**. Cobriram: **15 suítes, 388 verificações**, em `next dev`,
 no `next build` e no site estático servido por `python3 -m http.server` (host estrito, sem rewrites).
 
 O que foi verificado de ponta a ponta: upload real, drag-and-drop com mouse e teclado, download real,
-e **inspeção do PDF/imagem resultante** (páginas e ordem com `pdf-lib`; pixels com um verificador
-independente que renderiza o PDF com `pdf.js` em outra aba). Também: ausência de requisições externas,
-de POST/PUT e de corpos enviados (`HEAD` do prefetch dos links é permitido), e de erros no console.
+e **inspeção do arquivo resultante com leitores independentes**: `pdf-lib` e `pdf.js` (outra aba, que
+renderiza o PDF e devolve pixels/texto/posições) para PDFs e imagens; **`python-docx`, `openpyxl` e
+`python-pptx`** (venv no scratchpad) para .docx/.xlsx/.pptx gerados, e os mesmos pacotes + `reportlab` +
+Pillow para criar as entradas; o **próprio Chrome (`page.pdf()`) como oráculo** da conversão de HTML (diferença
+média de 3,4/255). Também: ausência de requisições externas/POST/corpos (`HEAD` do prefetch é permitido; pedidos
+barrados pelo CSP são identificados por `blockedReason` do CDP e não podem ter resposta) e de erros no console.
+
+**Não verificado:** abrir os arquivos gerados no Microsoft Office/LibreOffice reais (não há LibreOffice aqui;
+só os leitores Python), Firefox/Safari, dispositivos móveis e documentos reais grandes/complexos.
 
 Se for recriar: prefira **Playwright** dentro do repo. Armadilhas já enfrentadas:
 
@@ -280,10 +366,28 @@ Se for recriar: prefira **Playwright** dentro do repo. Armadilhas já enfrentada
 - Imprima resultados com `console.log` direto em **arquivo** ao depurar (a saída por pipe se perde se
   o processo morrer).
 - Download: aguarde o arquivo aparecer (e sumir o `.crdownload`) antes de lê-lo.
+- Com 2+ abas, cada `render` do verificador troca o foco: não rode `Promise.all` de renders.
+- O `DOMParser`/`XMLSerializer` não existem no Node: nada do navegador no **topo de módulo** (ver abaixo).
 - No `next dev`, uma execução isolada falhou uma vez (recarga do servidor de dev, provavelmente) e passou
   nas repetições; o build estático passou em todas as repetições.
 
-## 10. Ambiente e armadilhas de shell
+## 10. Armadilhas de código já encontradas
+
+- **Nomes reservados do Next dentro de `src/app/`:** `layout.*`, `page.*`, `template.*`, `error.*`, `loading.*`,
+  `route.*`, `default.*`, `not-found.*` viram arquivos de rota, mesmo em `lib/`. Um `lib/pdf/layout.ts` foi
+  tratado como layout da rota `/lib/pdf` (por isso `analyze-layout.ts`).
+- **Nada do navegador no topo de módulo** (`new XMLSerializer()`, `DOMParser`, `window`...): o prerender
+  roda no Node e dá 500 no dev e **falha no `next build`**. Instancie dentro da função.
+- **`.d.ts` de pacotes sem tipos** vão em `src/app/types-shims.d.ts` (hoje só `ssf`).
+- **`readText` do PPTX:** a cor-base do texto (`fontRef` do estilo da forma, ou do estilo da tabela) fica
+  *entre* os estilos gerais e os do placeholder; senão a cor padrão do tema (preta) sempre ganharia.
+- **Atributos XML mantêm o prefixo** (`r:id`, `r:embed`); descartá-lo faz `r:id` sobrescrever o `id` do mesmo nó.
+- **`emu()` no `pptx/model.ts`** recebe o fallback em EMU (não em pontos).
+- **ESLint** precisa ignorar `public/pdf.worker.*.min.js` (arquivo minificado gerado).
+- O `.docx`/`.xlsx`/`.pptx` gerados com bibliotecas só foram validados por leitores Python; antes de prometer
+  compatibilidade total com o Office, abra-os no Office real.
+
+## 11. Ambiente e armadilhas de shell
 
 - **Nunca** use `pkill -f "next start"`/`pkill -f next`: a string aparece na linha de comando do próprio
   shell e ele se mata (código 144). Encerre servidores pelo PID: `ss -ltnp | grep :PORTA`.
@@ -291,7 +395,7 @@ Se for recriar: prefira **Playwright** dentro do repo. Armadilhas já enfrentada
 - `next dev`/`next build` compartilham `.next/`; `build` apaga/recria `out/`.
 - `grep` desta máquina (ugrep) falha com `.{0,200}` em arquivos UTF-8: use Python para extrair contexto.
 
-## 11. Implantação (Render)
+## 12. Implantação (Render)
 
 Alvo recomendado: **Static Site** (grátis, sem "adormecer", sem servidor Node). `render.yaml`:
 `runtime: static`, `buildCommand: npm install && npm run build`, `staticPublishPath: ./out`; Node 22 via `.node-version`.
@@ -307,11 +411,11 @@ Alvo recomendado: **Static Site** (grátis, sem "adormecer", sem servidor Node).
 - Cabeçalhos de segurança (ex.: CSP com `connect-src 'self'`) não estão configurados; seriam uma
   camada extra para provar a regra de ouro.
 
-## 12. Estado atual
+## 13. Estado atual
 
-- 6 ferramentas prontas; Home e Navbar listam todas.
+- **14 ferramentas** prontas (Home em 3 grupos e menu "Ferramentas"); falta apenas PDF → PDF/A (decisão do usuário).
 - Repositório público no GitHub: <https://github.com/Junior36912/conversor-pdf> (`origin`, branch `main`
   acompanhando `origin/main`). O `gh` está autenticado como `Junior36912`.
-- Deploy no Render feito e verificado: <https://conpdf.onrender.com/> (ver §11). Cada `git push` na `main`
+- Deploy no Render feito e verificado: <https://conpdf.onrender.com/> (ver §12). Cada `git push` na `main`
   dispara um novo deploy (padrão do Render para Static Site).
 - Pendências e ideias: ver "Possíveis melhorias" em [INFO.md](INFO.md).

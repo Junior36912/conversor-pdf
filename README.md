@@ -11,7 +11,18 @@ Web Workers, sem travar a interface.
 | Organizar PDF | `/organize-pdf` | Gira, reordena e exclui páginas numa grade de miniaturas |
 | Comprimir PDF | `/compress-pdf` | Reduz o tamanho em 3 níveis; texto e vetores nunca são alterados |
 | Marca d'água | `/watermark-pdf` | Aplica um texto (centralizado ou em mosaico) nas páginas escolhidas |
+| Imagem para PDF | `/image-to-pdf` | JPG, PNG, WebP... em um PDF (EXIF corrigido, JPEG sem recompressão) |
+| Word para PDF | `/word-to-pdf` | Converte `.docx` em PDF com texto selecionável |
+| PowerPoint para PDF | `/powerpoint-to-pdf` | Converte `.pptx` em PDF, um slide por página |
+| Excel para PDF | `/excel-to-pdf` | Converte `.xlsx` em PDF com cores, bordas e formatos de número |
+| HTML para PDF | `/html-to-pdf` | Converte código ou arquivo HTML em PDF (sem scripts e sem rede) |
 | PDF para Imagem | `/pdf-to-image` | Converte páginas em PNG ou JPG (72, 150 ou 300 DPI) |
+| PDF para Word | `/pdf-to-word` | Extrai texto, títulos, listas e tabelas para `.docx` |
+| PDF para PowerPoint | `/pdf-to-powerpoint` | Slides editáveis (texto) ou fiéis (imagens) |
+| PDF para Excel | `/pdf-to-excel` | Extrai tabelas para `.xlsx`, convertendo números |
+
+As conversões de Office e HTML são **aproximadas** (rodam inteiramente no navegador, sem servidor): veja os
+limites em [`INFO.md`](INFO.md).
 
 **Demo:** <https://conpdf.onrender.com/>
 

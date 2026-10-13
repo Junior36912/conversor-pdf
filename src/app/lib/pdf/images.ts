@@ -7,6 +7,11 @@ export type MarginOption = "none" | "small" | "large";
 
 export interface ImagesToPdfOptions {
   pageSize: PageSizeOption;
+  /**
+   * Resolução das imagens no modo "fit" (pixels por polegada). 96 = tamanho CSS; imagens geradas
+   * com escala 2 (ex.: capturas de HTML) usam 192 para a página sair no tamanho certo.
+   */
+  dpi?: number;
   /** Só vale para A4 e Carta; "fit" usa o formato da própria imagem. */
   orientation: OrientationOption;
   margin: MarginOption;
@@ -24,7 +29,7 @@ const PAGE_SIZES = {
 } as const;
 const MARGINS: Record<MarginOption, number> = { none: 0, small: 24, large: 48 };
 // 96 px por polegada (CSS) -> 72 pt por polegada.
-const PX_TO_PT = 0.75;
+const DEFAULT_DPI = 96;
 // Limite do formato PDF para o tamanho de página.
 const MAX_PAGE_PT = 14_400;
 
@@ -107,13 +112,14 @@ export async function embedImage(doc: PDFDocument, buffer: ArrayBuffer): Promise
 
 function pageSizeFor(
   image: PDFImage,
-  { pageSize, orientation, margin }: ImagesToPdfOptions,
+  { pageSize, orientation, margin, dpi = DEFAULT_DPI }: ImagesToPdfOptions,
 ): { width: number; height: number } {
   const edge = MARGINS[margin];
 
   if (pageSize === "fit") {
-    const naturalW = image.width * PX_TO_PT + 2 * edge;
-    const naturalH = image.height * PX_TO_PT + 2 * edge;
+    const pxToPt = 72 / dpi;
+    const naturalW = image.width * pxToPt + 2 * edge;
+    const naturalH = image.height * pxToPt + 2 * edge;
     const shrink = Math.min(1, MAX_PAGE_PT / Math.max(naturalW, naturalH));
     return { width: naturalW * shrink, height: naturalH * shrink };
   }
