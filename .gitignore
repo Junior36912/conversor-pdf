@@ -20,6 +20,9 @@
 # production
 /build
 
+# worker do pdf.js copiado de node_modules (scripts/copy-pdf-worker.mjs)
+/public/pdf.worker.*.min.js
+
 # misc
 .DS_Store
 *.pem

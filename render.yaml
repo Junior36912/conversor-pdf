@@ -1,0 +1,11 @@
+# Blueprint do Render: publica o site como Static Site (sem servidor Node).
+# O `next build` gera a pasta `out/` (output: "export" em next.config.ts); o Render só a serve.
+#
+# ATENÇÃO: este arquivo segue a documentação do Render, mas o deploy real ainda não foi testado.
+# A versão do Node vem de `.node-version` (22); o `npm install` é feito pelo próprio Render.
+services:
+  - type: web
+    name: pdflocal
+    runtime: static
+    buildCommand: npm run build
+    staticPublishPath: ./out
