@@ -170,6 +170,15 @@ next.config.ts · components.json · render.yaml · .node-version · AGENTS.md
 - O `new Worker(new URL("./pdf-worker.ts", import.meta.url), { type: "module" })` precisa ser
   **literal** para o Turbopack detectá-lo. O worker real sai como `turbopack-worker-*.js`; um
   `pdf-worker.*.ts` cru em `static/media/` é só um asset residual do `new URL()` e ninguém o carrega.
+- **Worker enxuto (importante p/ latência):** `pdf-worker.ts` importa de forma **estática** só o núcleo
+  (`pdf-lib`, `compress`, `analyze-layout`, `images`, `ranges`, `zip`). Word, Excel, PowerPoint e os
+  escritores de Office (`docx`, `exceljs`, `pptxgenjs`, motor do Word, renderizadores) entram com
+  `await import(...)` **dentro do `case`**. Quando eram estáticos, até um simples Juntar baixava e interpretava
+  ~3 MB por worker (e cada tarefa cria um worker novo); agora o Juntar carrega ~1 MB. Os demais módulos de
+  Office entram no worker só com `import type`. Funciona no `next dev` e no build estático (medido).
+- Códigos de erro compartilhados entre worker e hooks ficam em `lib/workers/error-codes.ts`
+  (`NO_TABLES`, `EMPTY_WORKBOOK`, `WORKBOOK_TOO_LARGE`, `NO_SLIDES`): os hooks **não** podem importar
+  constantes de `xlsx-writer`/`xlsx-render`/`pptx/render`, senão esses módulos pesados voltam ao bundle da página.
 - Dentro do worker, `self` é tipado com um contrato mínimo (não use `/// <reference lib="webworker" />`;
   conflita com o lib `dom`).
 
@@ -241,7 +250,8 @@ passa pelo worker.
 ## 5. Como adicionar uma ferramenta (checklist)
 
 1. Lógica pura em `lib/pdf/` (importável pelo worker; sem DOM, exceto o que o worker tem, como OffscreenCanvas).
-2. Novo tipo em `PdfWorkerRequest` + `case` no `pdf-worker.ts`.
+2. Novo tipo em `PdfWorkerRequest` + `case` no `pdf-worker.ts`. Se a lógica for pesada (>~100 KB), carregue-a
+   com `await import()` dentro do `case` (e use só `import type` no topo), para não pesar nas outras tarefas.
 3. Função `xxxInWorker` em `pdf-worker-client.ts` (usa `runInWorker`).
 4. Hook fino `usePdfXxx` sobre `usePdfTask` (use `describePdfError`, `downloadBlob`, `fileBaseName`).
 5. Página em `(tools)/<rota>/page.tsx` + `layout.tsx` com `metadata` (use `LayoutProps<"/rota">`).
@@ -378,6 +388,8 @@ Se for recriar: prefira **Playwright** dentro do repo. Armadilhas já enfrentada
   tratado como layout da rota `/lib/pdf` (por isso `analyze-layout.ts`).
 - **Nada do navegador no topo de módulo** (`new XMLSerializer()`, `DOMParser`, `window`...): o prerender
   roda no Node e dá 500 no dev e **falha no `next build`**. Instancie dentro da função.
+- **Import estático de lib pesada no `pdf-worker.ts`** faz TODA tarefa pagar o download (foi uma regressão
+  real no site: Juntar com PDF corrompido levava ~15 s só para o alerta). Use `import()` no `case`.
 - **`.d.ts` de pacotes sem tipos** vão em `src/app/types-shims.d.ts` (hoje só `ssf`).
 - **`readText` do PPTX:** a cor-base do texto (`fontRef` do estilo da forma, ou do estilo da tabela) fica
   *entre* os estilos gerais e os do placeholder; senão a cor padrão do tema (preta) sempre ganharia.

@@ -1,5 +1,6 @@
 import ExcelJS from "exceljs";
 import type { AnalyzedPage, Block, Run } from "../pdf/analyze-layout";
+import { NO_TABLES } from "../workers/error-codes";
 import { parseNumber, type DecimalSeparator } from "./numbers";
 
 export interface XlsxOptions {
@@ -12,8 +13,6 @@ export interface XlsxOptions {
   decimal: DecimalSeparator;
 }
 
-/** Erro de conteúdo: o PDF não tem nada para colocar na planilha com as opções escolhidas. */
-export const NO_TABLES = "NO_TABLES";
 
 const MIN_COLUMN = 8;
 const MAX_COLUMN = 60;

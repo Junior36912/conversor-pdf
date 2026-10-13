@@ -6,7 +6,7 @@ import { downloadBlob } from "@/app/lib/download";
 import { hasText } from "@/app/lib/pdf/analyze-layout";
 import { extractRawPages } from "@/app/lib/pdf/extract";
 import type { DecimalSeparator } from "@/app/lib/office/numbers";
-import { NO_TABLES } from "@/app/lib/office/xlsx-writer";
+import { NO_TABLES } from "@/app/lib/workers/error-codes";
 import { fileBaseName } from "@/app/lib/utils";
 import { PdfWorkerError, pdfToXlsxInWorker } from "@/app/lib/workers/pdf-worker-client";
 

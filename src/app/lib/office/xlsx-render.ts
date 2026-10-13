@@ -3,6 +3,7 @@ import ssf from "ssf";
 import { PDFDocument, rgb, type Color, type PDFFont, type PDFPage } from "pdf-lib";
 import { PdfLoadError } from "../pdf/core";
 import { embedUnicodeFonts, type UnicodeFonts } from "../pdf/fonts";
+import { EMPTY_WORKBOOK, WORKBOOK_TOO_LARGE } from "../workers/error-codes";
 
 export interface XlsxToPdfOptions {
   pageSize: "a4" | "letter";
@@ -14,10 +15,6 @@ export interface XlsxToPdfOptions {
   /** Separadores dos números: "1.234,56" (comma) ou "1,234.56" (dot). */
   decimal: "comma" | "dot";
 }
-
-/** Mensagens-código de erros de conteúdo (o cliente as traduz em texto para o usuário). */
-export const EMPTY_WORKBOOK = "EMPTY_WORKBOOK";
-export const WORKBOOK_TOO_LARGE = "WORKBOOK_TOO_LARGE";
 
 const PAGE_SIZES = { a4: [595.28, 841.89], letter: [612, 792] } as const;
 const MARGIN = 28;

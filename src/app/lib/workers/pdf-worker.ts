@@ -8,20 +8,18 @@ import {
   type PageEdit,
 } from "@/app/lib/pdf/core";
 import { analyzeDocument, type RawPage } from "@/app/lib/pdf/analyze-layout";
-import { docxToPdf } from "@/app/lib/pdf/docx";
 import { imagesToPdf, type ImageInput, type ImagesToPdfOptions } from "@/app/lib/pdf/images";
 import { formatRange, type PageRange } from "@/app/lib/pdf/ranges";
 import type { WatermarkOptions } from "@/app/lib/pdf/watermark";
-import { writeDocx, type DocxOptions } from "@/app/lib/office/docx-writer";
-import {
-  writePptxFromImages,
-  writePptxFromText,
-  type PageImage,
-} from "@/app/lib/office/pptx-writer";
-import { pptxToPdf } from "@/app/lib/office/pptx/render";
-import { xlsxToPdf, type XlsxToPdfOptions } from "@/app/lib/office/xlsx-render";
-import { writeXlsx, type XlsxOptions } from "@/app/lib/office/xlsx-writer";
+import type { DocxOptions } from "@/app/lib/office/docx-writer";
+import type { PageImage } from "@/app/lib/office/pptx-writer";
+import type { XlsxToPdfOptions } from "@/app/lib/office/xlsx-render";
+import type { XlsxOptions } from "@/app/lib/office/xlsx-writer";
 import { createZip } from "@/app/lib/zip";
+
+// As bibliotecas pesadas do Office (exceljs, docx, pptxgenjs, motor do Word, renderizadores) são
+// carregadas com `import()` só quando o pedido correspondente chega. Importá-las de forma estática
+// faria TODA tarefa (até um simples Juntar) baixar e interpretar ~3 MB de JavaScript a cada worker.
 
 export type PdfWorkerRequest =
   | { type: "merge"; buffers: ArrayBuffer[] }
@@ -126,36 +124,47 @@ ctx.addEventListener("message", async ({ data }) => {
           format: "pdf",
         };
         break;
-      case "docx":
+      case "docx": {
+        const { docxToPdf } = await import("@/app/lib/pdf/docx");
         output = { result: await docxToPdf(data.buffer), format: "pdf" };
         break;
+      }
       case "pdf-to-docx": {
+        const { writeDocx } = await import("@/app/lib/office/docx-writer");
         const { pages } = analyzeDocument(data.pages, { removeRepeated: data.options.removeRepeated });
         report(1, 2);
         output = { result: await writeDocx(pages, data.options), format: "docx" };
         break;
       }
       case "pdf-to-xlsx": {
+        const { writeXlsx } = await import("@/app/lib/office/xlsx-writer");
         const { pages } = analyzeDocument(data.pages, { removeRepeated: data.options.removeRepeated });
         report(1, 2);
         output = { result: await writeXlsx(pages, data.options), format: "xlsx" };
         break;
       }
       case "pdf-to-pptx-text": {
+        const { writePptxFromText } = await import("@/app/lib/office/pptx-writer");
         const { pages } = analyzeDocument(data.pages, { removeRepeated: data.removeRepeated });
         report(1, 2);
         output = { result: await writePptxFromText(pages), format: "pptx" };
         break;
       }
-      case "pdf-to-pptx-images":
+      case "pdf-to-pptx-images": {
+        const { writePptxFromImages } = await import("@/app/lib/office/pptx-writer");
         output = { result: await writePptxFromImages(data.pages), format: "pptx" };
         break;
-      case "xlsx":
+      }
+      case "xlsx": {
+        const { xlsxToPdf } = await import("@/app/lib/office/xlsx-render");
         output = { result: await xlsxToPdf(data.buffer, data.options, report), format: "pdf" };
         break;
-      case "pptx":
+      }
+      case "pptx": {
+        const { pptxToPdf } = await import("@/app/lib/office/pptx/render");
         output = { result: await pptxToPdf(data.buffer, report), format: "pdf" };
         break;
+      }
       default:
         return;
     }

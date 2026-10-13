@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 import { usePdfTask } from "@/app/hooks/usePdfTask";
 import { downloadBlob } from "@/app/lib/download";
-import { NO_SLIDES } from "@/app/lib/office/pptx/render";
+import { NO_SLIDES } from "@/app/lib/workers/error-codes";
 import { fileBaseName } from "@/app/lib/utils";
 import {
   describePdfError,

@@ -3,11 +3,8 @@
 import { useCallback } from "react";
 import { usePdfTask } from "@/app/hooks/usePdfTask";
 import { downloadBlob } from "@/app/lib/download";
-import {
-  EMPTY_WORKBOOK,
-  WORKBOOK_TOO_LARGE,
-  type XlsxToPdfOptions,
-} from "@/app/lib/office/xlsx-render";
+import type { XlsxToPdfOptions } from "@/app/lib/office/xlsx-render";
+import { EMPTY_WORKBOOK, WORKBOOK_TOO_LARGE } from "@/app/lib/workers/error-codes";
 import { fileBaseName } from "@/app/lib/utils";
 import {
   describePdfError,

@@ -1,11 +1,9 @@
 import { PDFDocument } from "pdf-lib";
 import { PdfLoadError } from "../../pdf/core";
 import { embedUnicodeFonts, type FontFamily } from "../../pdf/fonts";
+import { NO_SLIDES } from "../../workers/error-codes";
 import { drawDeck } from "./draw";
 import { readPptx, type Deck } from "./model";
-
-/** Código de erro: a apresentação não tem slides visíveis (todos ocultos ou arquivo vazio). */
-export const NO_SLIDES = "NO_SLIDES";
 
 function familiesUsed(deck: Deck): Set<FontFamily> {
   const families = new Set<FontFamily>();
