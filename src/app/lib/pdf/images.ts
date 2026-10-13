@@ -92,7 +92,8 @@ async function reencode(
   return new Uint8Array(await blob.arrayBuffer());
 }
 
-async function embedImage(doc: PDFDocument, buffer: ArrayBuffer): Promise<PDFImage> {
+/** Embute PNG/JPEG direto; outros formatos (WebP, GIF, BMP...) passam pelo decodificador do navegador. */
+export async function embedImage(doc: PDFDocument, buffer: ArrayBuffer): Promise<PDFImage> {
   const bytes = new Uint8Array(buffer);
   if (isJpeg(bytes)) {
     // JPEG normal entra sem recompressão (sem perda); o que tem EXIF de rotação precisa ser girado.

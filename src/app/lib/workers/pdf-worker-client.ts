@@ -7,6 +7,7 @@ import type { CompressionLevel } from "@/app/lib/pdf/compress";
 import type { RawPage } from "@/app/lib/pdf/analyze-layout";
 import type { DocxOptions } from "@/app/lib/office/docx-writer";
 import type { PageImage } from "@/app/lib/office/pptx-writer";
+import type { XlsxToPdfOptions } from "@/app/lib/office/xlsx-render";
 import type { XlsxOptions } from "@/app/lib/office/xlsx-writer";
 import type { PageEdit } from "@/app/lib/pdf/core";
 import type { ImageInput, ImagesToPdfOptions } from "@/app/lib/pdf/images";
@@ -219,6 +220,25 @@ export async function pdfToPptxImagesInWorker(
     pages.map(({ jpeg }) => jpeg),
     options,
   );
+  return bytes;
+}
+
+/** Converte um .xlsx em PDF (uma ou mais páginas por planilha visível). */
+export async function xlsxToPdfInWorker(
+  buffer: ArrayBuffer,
+  xlsxOptions: XlsxToPdfOptions,
+  options?: WorkerOptions,
+): Promise<Uint8Array<ArrayBuffer>> {
+  const { bytes } = await runInWorker({ type: "xlsx", buffer, options: xlsxOptions }, [buffer], options);
+  return bytes;
+}
+
+/** Converte um .pptx em PDF (um slide por página; texto vetorial). */
+export async function pptxToPdfInWorker(
+  buffer: ArrayBuffer,
+  options?: WorkerOptions,
+): Promise<Uint8Array<ArrayBuffer>> {
+  const { bytes } = await runInWorker({ type: "pptx", buffer }, [buffer], options);
   return bytes;
 }
 

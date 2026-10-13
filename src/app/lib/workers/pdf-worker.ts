@@ -18,6 +18,8 @@ import {
   writePptxFromText,
   type PageImage,
 } from "@/app/lib/office/pptx-writer";
+import { pptxToPdf } from "@/app/lib/office/pptx/render";
+import { xlsxToPdf, type XlsxToPdfOptions } from "@/app/lib/office/xlsx-render";
 import { writeXlsx, type XlsxOptions } from "@/app/lib/office/xlsx-writer";
 import { createZip } from "@/app/lib/zip";
 
@@ -33,7 +35,9 @@ export type PdfWorkerRequest =
   | { type: "pdf-to-docx"; pages: RawPage[]; options: DocxOptions & { removeRepeated: boolean } }
   | { type: "pdf-to-xlsx"; pages: RawPage[]; options: XlsxOptions & { removeRepeated: boolean } }
   | { type: "pdf-to-pptx-text"; pages: RawPage[]; removeRepeated: boolean }
-  | { type: "pdf-to-pptx-images"; pages: PageImage[] };
+  | { type: "pdf-to-pptx-images"; pages: PageImage[] }
+  | { type: "xlsx"; buffer: ArrayBuffer; options: XlsxToPdfOptions }
+  | { type: "pptx"; buffer: ArrayBuffer };
 
 export type PdfOutputFormat = "pdf" | "zip" | "docx" | "xlsx" | "pptx";
 
@@ -145,6 +149,12 @@ ctx.addEventListener("message", async ({ data }) => {
       }
       case "pdf-to-pptx-images":
         output = { result: await writePptxFromImages(data.pages), format: "pptx" };
+        break;
+      case "xlsx":
+        output = { result: await xlsxToPdf(data.buffer, data.options, report), format: "pdf" };
+        break;
+      case "pptx":
+        output = { result: await pptxToPdf(data.buffer, report), format: "pdf" };
         break;
       default:
         return;
