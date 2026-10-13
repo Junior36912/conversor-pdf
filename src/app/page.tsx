@@ -1,5 +1,5 @@
 import { ToolCard } from "@/app/components/shared/ToolCard";
-import { TOOLS } from "@/app/lib/tools";
+import { TOOL_GROUPS } from "@/app/lib/tools";
 
 export default function Home() {
   return (
@@ -14,14 +14,23 @@ export default function Home() {
         </p>
       </section>
 
-      <section
-        aria-label="Ferramentas"
-        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
-      >
-        {TOOLS.map((tool) => (
-          <ToolCard key={tool.href} {...tool} />
+      <div className="space-y-10">
+        {TOOL_GROUPS.map((group) => (
+          <section key={group.id} aria-labelledby={`group-${group.id}`}>
+            <h2
+              id={`group-${group.id}`}
+              className="mb-4 text-sm font-semibold tracking-wide text-muted-foreground uppercase"
+            >
+              {group.title}
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {group.tools.map((tool) => (
+                <ToolCard key={tool.href} {...tool} />
+              ))}
+            </div>
+          </section>
         ))}
-      </section>
+      </div>
     </div>
   );
 }

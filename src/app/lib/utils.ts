@@ -12,9 +12,12 @@ export function formatBytes(bytes: number): string {
   return `${exponent === 0 ? value : value.toFixed(1)} ${BYTE_UNITS[exponent]}`
 }
 
-/** Nome do arquivo sem a extensão `.pdf` e sem caracteres inválidos em nomes de arquivo. */
+// Extensões de entrada que as ferramentas reconhecem; qualquer outro ponto no nome é preservado.
+const KNOWN_EXTENSION = /\.(pdf|docx?|xlsx?|pptx?|html?|jpe?g|png|webp|gif|bmp|avif)$/i
+
+/** Nome do arquivo sem a extensão conhecida e sem caracteres inválidos em nomes de arquivo. */
 export function fileBaseName(filename: string): string {
   return (
-    filename.replace(/\.pdf$/i, "").replace(/[\\/:*?"<>|]+/g, "_").trim() || "documento"
+    filename.replace(KNOWN_EXTENSION, "").replace(/[\\/:*?"<>|]+/g, "_").trim() || "documento"
   )
 }

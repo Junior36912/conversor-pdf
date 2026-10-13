@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { FileText } from "lucide-react";
+import { NavMenu } from "@/app/components/layout/NavMenu";
 import { SITE_NAME } from "@/app/lib/constants";
-import { TOOLS } from "@/app/lib/tools";
 
 export function Navbar() {
   return (
     <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur">
       <nav
         aria-label="Principal"
-        className="mx-auto flex h-14 w-full max-w-5xl items-center gap-6 px-4"
+        className="mx-auto flex h-14 w-full max-w-5xl items-center gap-4 px-4"
       >
         <Link
           href="/"
@@ -18,15 +18,7 @@ export function Navbar() {
           {SITE_NAME}
         </Link>
 
-        <ul className="flex min-w-0 items-center gap-4 overflow-x-auto text-sm text-muted-foreground">
-          {TOOLS.map(({ title, href }) => (
-            <li key={href} className="shrink-0">
-              <Link href={href} className="transition-colors hover:text-foreground">
-                {title}
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <NavMenu />
       </nav>
     </header>
   );

@@ -7,6 +7,8 @@ import {
   splitPdfDocument,
   type PageEdit,
 } from "@/app/lib/pdf/core";
+import { docxToPdf } from "@/app/lib/pdf/docx";
+import { imagesToPdf, type ImageInput, type ImagesToPdfOptions } from "@/app/lib/pdf/images";
 import { formatRange, type PageRange } from "@/app/lib/pdf/ranges";
 import type { WatermarkOptions } from "@/app/lib/pdf/watermark";
 import { createZip } from "@/app/lib/zip";
@@ -17,7 +19,9 @@ export type PdfWorkerRequest =
   | { type: "zip"; entries: { name: string; buffer: ArrayBuffer }[] }
   | { type: "organize"; buffer: ArrayBuffer; pages: PageEdit[] }
   | { type: "compress"; buffer: ArrayBuffer; level: CompressionLevel }
-  | { type: "watermark"; buffer: ArrayBuffer; options: WatermarkOptions };
+  | { type: "watermark"; buffer: ArrayBuffer; options: WatermarkOptions }
+  | { type: "images"; images: ImageInput[]; options: ImagesToPdfOptions }
+  | { type: "docx"; buffer: ArrayBuffer };
 
 export type PdfOutputFormat = "pdf" | "zip";
 
@@ -99,6 +103,15 @@ ctx.addEventListener("message", async ({ data }) => {
           result: await addTextWatermark(data.buffer, data.options, report),
           format: "pdf",
         };
+        break;
+      case "images":
+        output = {
+          result: await imagesToPdf(data.images, data.options, report),
+          format: "pdf",
+        };
+        break;
+      case "docx":
+        output = { result: await docxToPdf(data.buffer), format: "pdf" };
         break;
       default:
         return;

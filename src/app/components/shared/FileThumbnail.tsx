@@ -5,8 +5,12 @@ import { FileText } from "lucide-react";
 import { renderFirstPage } from "@/app/lib/pdf/render";
 import { cn } from "@/app/lib/utils";
 
-interface PdfThumbnailProps {
+interface FileThumbnailProps {
   file: File;
+  /** Como gerar a miniatura (data URL). Por padrão, a primeira página de um PDF. */
+  render?: (file: File) => Promise<string>;
+  /** Texto alternativo da miniatura. */
+  alt?: string;
   /** Data URL já conhecida (por exemplo, guardada no store); evita renderizar de novo. */
   preview?: string;
   /** Chamado quando a miniatura termina de ser gerada. */
@@ -14,13 +18,15 @@ interface PdfThumbnailProps {
   className?: string;
 }
 
-/** Miniatura da primeira página do PDF, gerada sob demanda com o pdf.js. */
-export function PdfThumbnail({
+/** Miniatura de um arquivo (padrão: 1ª página de um PDF, via pdf.js), gerada sob demanda. */
+export function FileThumbnail({
   file,
+  render = renderFirstPage,
+  alt,
   preview,
   onPreviewReady,
   className,
-}: PdfThumbnailProps) {
+}: FileThumbnailProps) {
   const [rendered, setRendered] = useState<{ file: File; dataUrl: string }>();
   const [failedFile, setFailedFile] = useState<File>();
 
@@ -28,7 +34,7 @@ export function PdfThumbnail({
     if (preview) return;
 
     let cancelled = false;
-    renderFirstPage(file)
+    render(file)
       .then((dataUrl) => {
         if (cancelled) return;
         setRendered({ file, dataUrl });
@@ -41,7 +47,7 @@ export function PdfThumbnail({
     return () => {
       cancelled = true;
     };
-  }, [file, preview, onPreviewReady]);
+  }, [file, render, preview, onPreviewReady]);
 
   const src = preview ?? (rendered?.file === file ? rendered.dataUrl : undefined);
   const failed = failedFile === file;
@@ -59,7 +65,7 @@ export function PdfThumbnail({
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={src}
-          alt={`Primeira página de ${file.name}`}
+          alt={alt ?? `Prévia de ${file.name}`}
           className="size-full object-cover"
         />
       ) : (

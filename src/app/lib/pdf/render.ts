@@ -198,3 +198,22 @@ export async function openPdfPages(file: File): Promise<PdfPageRenderer> {
     },
   };
 }
+
+/** Miniatura (data URL JPEG) de uma imagem, já com a orientação EXIF aplicada pelo navegador. */
+export async function renderImageThumbnail(file: File, targetWidth = 160): Promise<string> {
+  const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+  try {
+    const scale = Math.min(1, targetWidth / bitmap.width);
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Canvas indisponível.");
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL("image/jpeg", 0.7);
+  } finally {
+    bitmap.close();
+  }
+}

@@ -1,22 +1,41 @@
 "use client";
 
+import { useCallback } from "react";
 import { CircleCheck, Loader2 } from "lucide-react";
 import { PdfDropzone } from "@/app/components/shared/PdfDropzone";
-import { SortablePdfList } from "@/app/components/shared/SortablePdfList";
+import { FileThumbnail } from "@/app/components/shared/FileThumbnail";
+import { SortableFileList } from "@/app/components/shared/SortableFileList";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/app/components/ui/card";
 import { Progress } from "@/app/components/ui/progress";
 import { usePdfMerge } from "@/app/hooks/usePdfMerge";
-import { useFileStore } from "@/app/store/useFileStore";
+import { useFileStore, type PdfFileItem } from "@/app/store/useFileStore";
 
 const MIN_FILES = 2;
+
+/** Miniatura que guarda o preview no store (evita renderizar de novo ao reordenar). */
+function MergeThumbnail({ item }: { item: PdfFileItem }) {
+  const setPreview = useFileStore((state) => state.setPreview);
+  const { id, file, preview } = item;
+  const handleReady = useCallback(
+    (dataUrl: string) => setPreview(id, dataUrl),
+    [id, setPreview],
+  );
+  return (
+    <FileThumbnail
+      file={file}
+      alt={`Primeira página de ${file.name}`}
+      preview={preview}
+      onPreviewReady={handleReady}
+    />
+  );
+}
 
 export default function MergePdfPage() {
   const files = useFileStore((state) => state.files);
   const removeFile = useFileStore((state) => state.removeFile);
   const clearFiles = useFileStore((state) => state.clearFiles);
   const reorderFiles = useFileStore((state) => state.reorderFiles);
-  const setPreview = useFileStore((state) => state.setPreview);
   const { status, progress, error, merge, reset } = usePdfMerge();
 
   const isProcessing = status === "processing";
@@ -37,12 +56,12 @@ export default function MergePdfPage() {
       {files.length > 0 && (
         <Card>
           <CardContent>
-            <SortablePdfList
+            <SortableFileList
               items={files}
+              renderThumbnail={(item) => <MergeThumbnail item={item} />}
               disabled={isProcessing}
               onReorder={reorderFiles}
               onRemove={removeFile}
-              onPreviewReady={setPreview}
             />
           </CardContent>
 

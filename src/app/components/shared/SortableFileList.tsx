@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import type { ReactNode } from "react";
 import {
   closestCenter,
   DndContext,
@@ -21,18 +21,23 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, X } from "lucide-react";
-import { PdfThumbnail } from "@/app/components/shared/PdfThumbnail";
 import { Button } from "@/app/components/ui/button";
 import { cn, formatBytes } from "@/app/lib/utils";
-import type { PdfFileItem } from "@/app/store/useFileStore";
 
-interface SortablePdfListProps {
-  items: PdfFileItem[];
-  /** Bloqueia reordenar e remover (ex.: enquanto o merge está rodando). */
+/** Item mínimo de uma lista de arquivos ordenável. */
+export interface SortableFileItem {
+  id: string;
+  file: File;
+}
+
+interface SortableFileListProps<T extends SortableFileItem> {
+  items: T[];
+  /** Miniatura exibida à esquerda do nome (PDF, imagem...). */
+  renderThumbnail: (item: T) => ReactNode;
+  /** Bloqueia reordenar e remover (ex.: enquanto a conversão está rodando). */
   disabled?: boolean;
   onReorder: (activeId: string, overId: string) => void;
   onRemove: (id: string) => void;
-  onPreviewReady: (id: string, dataUrl: string) => void;
 }
 
 const screenReaderInstructions: ScreenReaderInstructions = {
@@ -40,13 +45,13 @@ const screenReaderInstructions: ScreenReaderInstructions = {
     "Para reordenar, pressione espaço ou Enter na alça, use as setas para mover e pressione espaço ou Enter para soltar. Esc cancela.",
 };
 
-export function SortablePdfList({
+export function SortableFileList<T extends SortableFileItem>({
   items,
+  renderThumbnail,
   disabled,
   onReorder,
   onRemove,
-  onPreviewReady,
-}: SortablePdfListProps) {
+}: SortableFileListProps<T>) {
   const sensors = useSensors(
     // A distância mínima evita que um simples clique inicie o arraste.
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -80,7 +85,7 @@ export function SortablePdfList({
   return (
     // `id` fixo evita divergência de hidratação nos atributos aria gerados pelo dnd-kit.
     <DndContext
-      id="pdf-sortable-list"
+      id="file-sortable-list"
       sensors={sensors}
       collisionDetection={closestCenter}
       onDragEnd={handleDragEnd}
@@ -96,9 +101,9 @@ export function SortablePdfList({
               key={item.id}
               item={item}
               position={index + 1}
+              thumbnail={renderThumbnail(item)}
               disabled={disabled}
               onRemove={onRemove}
-              onPreviewReady={onPreviewReady}
             />
           ))}
         </ul>
@@ -108,19 +113,19 @@ export function SortablePdfList({
 }
 
 interface SortableRowProps {
-  item: PdfFileItem;
+  item: SortableFileItem;
   position: number;
+  thumbnail: ReactNode;
   disabled?: boolean;
   onRemove: (id: string) => void;
-  onPreviewReady: (id: string, dataUrl: string) => void;
 }
 
 function SortableRow({
   item,
   position,
+  thumbnail,
   disabled,
   onRemove,
-  onPreviewReady,
 }: SortableRowProps) {
   const {
     attributes,
@@ -132,11 +137,7 @@ function SortableRow({
     isDragging,
   } = useSortable({ id: item.id, disabled });
 
-  const { id, file, preview } = item;
-  const handlePreviewReady = useCallback(
-    (dataUrl: string) => onPreviewReady(id, dataUrl),
-    [id, onPreviewReady],
-  );
+  const { id, file } = item;
 
   return (
     <li
@@ -165,11 +166,7 @@ function SortableRow({
       >
         {position}
       </span>
-      <PdfThumbnail
-        file={file}
-        preview={preview}
-        onPreviewReady={handlePreviewReady}
-      />
+      {thumbnail}
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">{file.name}</p>
         <p className="text-xs text-muted-foreground">{formatBytes(file.size)}</p>

@@ -1,6 +1,6 @@
 "use client";
 
-import { PdfThumbnail } from "@/app/components/shared/PdfThumbnail";
+import { FileThumbnail } from "@/app/components/shared/FileThumbnail";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
 import { formatBytes } from "@/app/lib/utils";
@@ -27,7 +27,11 @@ export function SelectedPdfCard({
     <div className="space-y-2">
       <Card>
         <CardContent className="flex items-center gap-4">
-          <PdfThumbnail file={file} className="w-16" />
+          <FileThumbnail
+            file={file}
+            alt={`Primeira página de ${file.name}`}
+            className="w-16"
+          />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium">{file.name}</p>
             <p className="text-xs text-muted-foreground">

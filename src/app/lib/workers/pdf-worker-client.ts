@@ -5,6 +5,7 @@ import type {
 } from "./pdf-worker";
 import type { CompressionLevel } from "@/app/lib/pdf/compress";
 import type { PageEdit } from "@/app/lib/pdf/core";
+import type { ImageInput, ImagesToPdfOptions } from "@/app/lib/pdf/images";
 import type { PageRange } from "@/app/lib/pdf/ranges";
 import type { WatermarkOptions } from "@/app/lib/pdf/watermark";
 
@@ -151,10 +152,41 @@ export async function watermarkPdfInWorker(
   return bytes;
 }
 
-/** Mensagem de erro para o usuário: cita o arquivo se o worker não conseguiu abri-lo. */
-export function describePdfError(file: File, fallback: string) {
-  return (cause: unknown): string =>
-    cause instanceof PdfWorkerError && cause.failedIndex !== undefined
-      ? `Não foi possível ler "${file.name}". Ele pode estar corrompido ou protegido por senha.`
-      : fallback;
+/** Cria um PDF com uma imagem por página, na ordem recebida. */
+export async function imagesToPdfInWorker(
+  images: ImageInput[],
+  imageOptions: ImagesToPdfOptions,
+  options?: WorkerOptions,
+): Promise<Uint8Array<ArrayBuffer>> {
+  const { bytes } = await runInWorker(
+    { type: "images", images, options: imageOptions },
+    images.map(({ buffer }) => buffer),
+    options,
+  );
+  return bytes;
+}
+
+/** Converte um .docx em PDF (motor leve em WebAssembly; fidelidade aproximada). */
+export async function docxToPdfInWorker(
+  buffer: ArrayBuffer,
+  options?: WorkerOptions,
+): Promise<Uint8Array<ArrayBuffer>> {
+  const { bytes } = await runInWorker({ type: "docx", buffer }, [buffer], options);
+  return bytes;
+}
+
+/**
+ * Mensagem de erro para o usuário: cita o arquivo se o worker não conseguiu abri-lo.
+ * Com uma lista de arquivos, usa o índice informado pelo worker para achar o culpado.
+ */
+export function describePdfError(
+  fileOrFiles: File | File[],
+  fallback: string,
+  reason = "Ele pode estar corrompido ou protegido por senha.",
+) {
+  return (cause: unknown): string => {
+    if (!(cause instanceof PdfWorkerError) || cause.failedIndex === undefined) return fallback;
+    const failed = Array.isArray(fileOrFiles) ? fileOrFiles[cause.failedIndex] : fileOrFiles;
+    return failed ? `Não foi possível ler "${failed.name}". ${reason}` : fallback;
+  };
 }
